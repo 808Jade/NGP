@@ -142,7 +142,10 @@
     <ClCompile Include="0919_biteorder.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="0919_DNS.cpp" />
+    <ClCompile Include="0919_DNS.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="hw2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
