@@ -5,7 +5,7 @@
 bool GetIPAddr(const char* name, struct in_addr* addr)
 {
 	struct hostent* ptr = gethostbyname(name);
-	
+
 	for (char** alias = ptr->h_aliases; *alias != NULL; alias++) {
 		std::cout << "alias : " << *alias << std::endl;
 	}
