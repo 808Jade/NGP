@@ -1,5 +1,7 @@
 #include "Common.h"
 
+#include <string>
+#include <vector>
 
 // 도메인 이름 -> IPv4 주소
 bool GetIPAddr(const char* name, struct in_addr* addr)
@@ -40,37 +42,68 @@ bool GetDomainName(struct in_addr addr, char* name, int namelen)
 	return true;
 }
 
+std::vector<std::string> getIPAddresses(struct hostent* he) 
+{
+	std::vector<std::string> ipAddresses;
+
+	// IPv4 유효
+	if (he->h_addrtype == AF_INET) {
+		for (int i = 0; he->h_addr_list[i] != nullptr; i++) {
+			char ip[INET_ADDRSTRLEN];	// 22
+
+			inet_ntop(AF_INET, he->h_addr_list[i], ip, sizeof(ip));
+			ipAddresses.push_back(ip);
+		}
+	}
+
+	return ipAddresses;
+}
+
+std::vector<std::string> getAliases(struct hostent* he) 
+{
+	std::vector<std::string> aliases;
+
+	for (char** alias = he->h_aliases; *alias != nullptr; alias++) {
+		aliases.push_back(*alias);
+	}
+	
+	return aliases;
+}
+
 int main(int argc, char* argv[])
 {
-	// std::cout << "input : " << argv[1] << std::endl;
-
-	// const char* input = argv[1];
-	char buffer[256];  // 적절한 크기의 버퍼 선언
-	std::cin >> buffer;
-	const char* input = buffer;
+	 std::string domain = argv[1];
 
 	// 윈속 초기화
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 		return 1;
 
-	// 도메인 이름 -> IP 주소
-	struct in_addr addr;
-	if (GetIPAddr(input, &addr)) {
-		// 성공이면 결과 출력
-		char str[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &addr, str, sizeof(str));
-		printf("IP 주소(변환 후) = %s\n", str);
+	struct hostent* p_he = gethostbyname( domain.c_str() );
+	if (p_he == nullptr) {
+		std::cerr << "gethostbyname failed: " << WSAGetLastError() << std::endl;
+		WSACleanup();
+		return 1;
+	}
+	
+	std::vector<std::string> ipAddresses = getIPAddresses(p_he);
+	std::vector<std::string> aliases = getAliases(p_he);
 
-		// IP 주소 -> 도메인 이름
-		char name[256];
-		if (GetDomainName(addr, name, sizeof(name))) {
-			// 성공이면 결과 출력
-			printf("도메인 이름(다시 변환 후) = %s\n", name);
-		}
+	std::cout << "IPv4 Addresses:" << std::endl;
+	for (const auto& ip : ipAddresses) {
+		std::cout << "  - " << ip << std::endl;
 	}
 
-	// 윈속 종료
+	std::cout << "별명 (CNAMEs):" << std::endl;
+	if (!aliases.empty()) {
+		for (const auto& alias : aliases) {
+			std::cout << "  - " << alias << std::endl;
+		}
+	}
+	else {
+		std::cout << "  No aliases found" << std::endl;
+	}
+
 	WSACleanup();
 	return 0;
 }
