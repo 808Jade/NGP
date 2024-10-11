@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 	// 파일 총 용량 전송하기
 	long file_size = getFileSize(file_name);
 
-	retval = send(sock, (char*)&file_size, sizeof(long), 0);
+	retval = send(sock, (char*)&file_size, sizeof(long), MSG_WAITALL);
 	if (retval == SOCKET_ERROR) {
 		err_display("send() - file size");
 	}
@@ -83,10 +83,10 @@ int main(int argc, char* argv[])
 
 		// 고정 길이 헤더 전송
 		int header[3] = { chunkNumber, bytesRead, totalChunks };
-		send(sock, (char*)header, sizeof(header), 0);
+		send(sock, (char*)header, sizeof(header), MSG_WAITALL);
 
 		// 가변 길이 데이터 전송
-		send(sock, buffer.data(), bytesRead, 0);
+		send(sock, buffer.data(), bytesRead, MSG_WAITALL);
 
 		chunkNumber++;
 	}

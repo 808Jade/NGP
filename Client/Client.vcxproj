@@ -127,7 +127,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="hw3_client.cpp" />
+    <ClCompile Include="hw3_client.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="ThreadEcho_client.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
