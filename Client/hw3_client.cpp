@@ -20,14 +20,23 @@ int main(int argc, char* argv[])
 {
 	int retval;
 	
-	// 명령행 인수 = 사용자가 입력한 파일 이름
 	// C:\Users\zztmd\Videos\OBS\Joker.mkv
-	if (argc < 2)
-		err_quit("Usage: program <filename>");
+	
+	const char* file_name = "filename";
 
-	const char* file_name = argv[1];
-	if (!file_name)
-		err_quit("Can't Find Video");
+	// 명령행 인수 처리
+	if (argc < 2 || argc > 3) {
+		err_quit("Usage: program [server ip] <filename> ");
+	}
+
+	if (argc == 2) {
+		file_name = argv[1];
+	}
+	else if (argc == 3) {
+		SERVERIP = argv[2];
+		file_name = argv[1];
+	}
+
 
 	// 윈속 초기화
 	WSADATA wsa;
