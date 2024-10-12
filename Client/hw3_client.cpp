@@ -3,6 +3,7 @@
 char* SERVERIP = (char*)"127.0.0.1";
 #define SERVERPORT 9000
 #define BUFSIZE    50
+#define CHUNKSIZE 1024
 
 long getFileSize(const char* filename) {
 	FILE* file = fopen(filename, "rb");
@@ -70,15 +71,14 @@ int main(int argc, char* argv[])
 	}
 
 	// 파일 데이터 전송하기
-	const int CHUNK_SIZE = 1024;
 	std::ifstream file(file_name, std::ios::binary);
-	std::vector<char> buffer(CHUNK_SIZE);
+	std::vector<char> buffer(CHUNKSIZE);
 
-	int totalChunks = (file_size + CHUNK_SIZE - 1) / CHUNK_SIZE;
+	int totalChunks = (file_size + CHUNKSIZE - 1) / CHUNKSIZE;
 	int chunkNumber = 0;
 
 	while ( !file.eof() ) {
-		file.read(buffer.data(), CHUNK_SIZE);
+		file.read(buffer.data(), CHUNKSIZE);
 		int bytesRead = file.gcount();
 
 		// 고정 길이 헤더 전송
@@ -89,6 +89,8 @@ int main(int argc, char* argv[])
 		send(sock, buffer.data(), bytesRead, MSG_WAITALL);
 
 		chunkNumber++;
+
+		Sleep(1000);
 	}
 
 	// 소켓 닫기
