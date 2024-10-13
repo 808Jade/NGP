@@ -5,12 +5,12 @@ char* SERVERIP = (char*)"127.0.0.1";
 #define BUFSIZE    50
 #define CHUNKSIZE 1024
 
-long getFileSize(const char* filename) {
+long long getFileSize(const char* filename) {
 	FILE* file = fopen(filename, "rb");
 	if (file == NULL) return -1;
 
 	fseek(file, 0, SEEK_END);
-	long size = ftell(file);
+	long long size = ftell(file);
 	fclose(file);
 
 	return size;
@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
 	
 	// C:\Users\zztmd\Videos\OBS\Joker.mkv
 	
-	const char* file_name = "filename";
+	const char* file_name = "C:\\Users\\zztmd\\Videos\\OBS\\Joker.mkv";
 
 	// 명령행 인수 처리
 	if (argc < 2 || argc > 3) {
@@ -31,12 +31,14 @@ int main(int argc, char* argv[])
 
 	if (argc == 2) {
 		file_name = argv[1];
+		std::cout << "file name(argv[1]) : " << argv[1] << std::endl;
 	}
 	else if (argc == 3) {
-		SERVERIP = argv[2];
-		file_name = argv[1];
+		SERVERIP = argv[1];
+		file_name = argv[2];
+		std::cout << "server ip : " << argv[1] << std::endl;
+		std::cout << "file name : " << argv[2] << std::endl;
 	}
-
 
 	// 윈속 초기화
 	WSADATA wsa;
@@ -72,9 +74,10 @@ int main(int argc, char* argv[])
 	}
 
 	// 파일 총 용량 전송하기
-	long file_size = getFileSize(file_name);
+	long long file_size = getFileSize(file_name);
+	std::cout <<"before send file_size : " << file_size << std::endl;
 
-	retval = send(sock, (char*)&file_size, sizeof(long), MSG_WAITALL);
+	retval = send(sock, (char*)&file_size, sizeof(long long), 0);
 	if (retval == SOCKET_ERROR) {
 		err_display("send() - file size");
 	}
@@ -92,10 +95,10 @@ int main(int argc, char* argv[])
 
 		// 고정 길이 헤더 전송
 		int header[3] = { chunkNumber, bytesRead, totalChunks };
-		send(sock, (char*)header, sizeof(header), MSG_WAITALL);
+		send(sock, (char*)header, sizeof(header), 0);
 
 		// 가변 길이 데이터 전송
-		send(sock, buffer.data(), bytesRead, MSG_WAITALL);
+		send(sock, buffer.data(), bytesRead, 0);
 
 		chunkNumber++;
 

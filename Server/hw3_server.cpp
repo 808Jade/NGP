@@ -22,7 +22,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	char buf[BUFSIZE + 1];
 	int len;
 
-	long file_size;
+	long long file_size;
 	char file_name[BUFSIZE + 1];
 
 	// 클라이언트 정보 얻기
@@ -42,13 +42,11 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		if (retval == SOCKET_ERROR) {
 			err_display("recv() - get file name data");
 		}
-
-		// 받은 데이터 출력
 		file_name[retval] = '\0';
 		printf("[TCP/%s:%d File Name] %s\n", addr, ntohs(clientaddr.sin_port), file_name);
 
 		// 파일 크기 받기(고정 길이)
-		retval = recv(client_sock, (char*)&file_size, sizeof(long), MSG_WAITALL);
+		retval = recv(client_sock, (char*)&file_size, sizeof(long long), MSG_WAITALL);
 		if (retval == SOCKET_ERROR) {
 			err_display("recv() - get file size");
 		}
@@ -58,6 +56,13 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 		char* fn;
 		fn = strrchr(file_name, '\\');
+		if (fn != NULL) {
+			fn++; // '\'를 건너뛰고 실제 파일 이름의 시작으로 이동
+		}
+		else {
+			fn = file_name; // '\'가 없는 경우 전체 문자열을 파일 이름으로 사용
+		}
+		printf("[TCP/%s:%d File Name] : %s\n", fn);
 		FILE* fp = fopen(fn, "wb");
 		if (fp == NULL) {
 			err_quit("fopen() - open file");
