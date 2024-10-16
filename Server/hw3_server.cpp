@@ -6,14 +6,49 @@
 #define BUFSIZE    512
 #define CHUNKSIZE 1024
 
-void displayProgress(long long receivedBytes, long long totalBytes) {
-	double percentage = (double)receivedBytes / totalBytes * 100;
-	std::cout << "\r수신 진행률: " << std::fixed << std::setprecision(2) << percentage << "% ";
-	std::cout << "(" << receivedBytes << " / " << totalBytes << " bytes)" << std::flush;
+int global_client_num = 0;
+CRITICAL_SECTION global_cs;
+
+#include <windows.h>
+
+void moveCursorVertically(int lines) {
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+	// 현재 커서 위치 가져오기
+	if (GetConsoleScreenBufferInfo(hConsole, &csbi)) {
+		COORD newPosition;
+		newPosition.X = 0;
+		newPosition.Y = csbi.dwCursorPosition.Y + lines; // 양수면 아래로, 음수면 위로 이동
+
+		// 새 위치가 콘솔 범위를 벗어나지 않도록 확인
+		if (newPosition.Y < 0) newPosition.Y = 0;
+		if (newPosition.Y >= csbi.dwSize.Y) newPosition.Y = csbi.dwSize.Y - 1;
+
+		SetConsoleCursorPosition(hConsole, newPosition);
+	}
+}
+
+void displayProgress(const char* addr, long long received_bytes, long long total_bytes, int client_num) 
+{
+	EnterCriticalSection(&global_cs);
+
+	// 클라이언트 번호에 해당하는 줄로 이동
+	moveCursorVertically(client_num);
+
+	double percentage = (double)received_bytes / total_bytes * 100;
+	std::cout << "\r[Client "<< client_num <<" | "<< addr << "] 수신 진행률 : " << std::fixed << std::setprecision(2) << percentage << " % ";
+	std::cout << "(" << received_bytes << " / " << total_bytes << " bytes)" << std::flush;
+
+	moveCursorVertically(-client_num);
+
+	LeaveCriticalSection(&global_cs);
 }
 
 DWORD WINAPI ProcessClient(LPVOID arg)
 {
+	int client_num;
+
 	int retval;
 	SOCKET client_sock = (SOCKET)arg;
 	struct sockaddr_in clientaddr;
@@ -30,6 +65,8 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	getpeername(client_sock, (struct sockaddr*)&clientaddr, &addrlen);
 	inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 
+	client_num = global_client_num++;
+
 	while (1) {
 		// 파일 이름 길이 받기(고정 길이)
 		retval = recv(client_sock, (char*)&len, sizeof(int), MSG_WAITALL);
@@ -43,16 +80,14 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			err_display("recv() - get file name data");
 		}
 		file_name[retval] = '\0';
-		printf("[TCP/%s:%d File Name] %s\n", addr, ntohs(clientaddr.sin_port), file_name);
+		// printf("[TCP/%s:%d File Name] %s\n", addr, ntohs(clientaddr.sin_port), file_name);
 
 		// 파일 크기 받기(고정 길이)
 		retval = recv(client_sock, (char*)&file_size, sizeof(long long), MSG_WAITALL);
 		if (retval == SOCKET_ERROR) {
 			err_display("recv() - get file size");
 		}
-
-		// 받은 데이터 출력
-		printf("[TCP/%s:%d File Size] %ld\n", addr, ntohs(clientaddr.sin_port), file_size);
+		// printf("[TCP/%s:%d File Size] %ld\n", addr, ntohs(clientaddr.sin_port), file_size);
 
 		char* fn;
 		fn = strrchr(file_name, '\\');
@@ -62,7 +97,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		else {
 			fn = file_name; // '\'가 없는 경우 전체 문자열을 파일 이름으로 사용
 		}
-		printf("[TCP/%s:%d File Name] : %s\n", fn);
+
 		FILE* fp = fopen(fn, "wb");
 		if (fp == NULL) {
 			err_quit("fopen() - open file");
@@ -101,7 +136,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			totalReceived += bytesRead;
 
 			// 진행률 표시
-			displayProgress(totalReceived, file_size);
+			displayProgress(addr ,totalReceived, file_size, client_num);
 
 			// 모든 청크를 받았는지 확인
 			if (chunkNumber == totalChunks - 1) {
@@ -113,13 +148,16 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 	// 소켓 닫기
 	closesocket(client_sock);
-	printf("[TCP 서버] 클라이언트 종료: IP 주소=%s, 포트 번호=%d\n", addr, ntohs(clientaddr.sin_port));
+	// printf("[TCP 서버] 클라이언트 종료: IP 주소=%s, 포트 번호=%d, 현재 접속중인 클라이언트 수=\n", addr, ntohs(clientaddr.sin_port), client_num);
 	return 0;
 }
 
 int main(int argc, char* argv[])
 {
 	int retval;
+
+	//Critical section 초기화
+	InitializeCriticalSection(&global_cs);
 
 	// 윈속 초기화
 	WSADATA wsa;
@@ -161,13 +199,11 @@ int main(int argc, char* argv[])
 			err_display("accept()");
 			break;
 		}
-
 		// 접속한 클라이언트 정보 출력
 		char addr[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
-		printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n",	addr, ntohs(clientaddr.sin_port));
+		// printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d, 현재접속중인 클라이언트 수=%d\n", addr, ntohs(clientaddr.sin_port), global_client_num + 1);
 
-		
 		// 스레드 생성
 		hThread = CreateThread(NULL, 0, ProcessClient, (LPVOID)client_sock, 0, NULL);
 		if (hThread == NULL) closesocket(client_sock);
