@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 
 		chunkNumber++;
 
-		Sleep(1000);
+		Sleep(100);
 	}
 
 	// ╪рдо ╢щ╠Б
