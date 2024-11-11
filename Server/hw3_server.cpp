@@ -138,6 +138,16 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			// 진행률 표시
 			displayProgress(addr ,totalReceived, file_size, client_num);
 
+			// 진행률 계산
+			int progress = (int)((totalReceived * 100) / file_size);
+
+			// 클라이언트에게 진행률 전송
+			retval = send(client_sock, (char*)&progress, sizeof(int), 0);
+			if (retval == SOCKET_ERROR) {
+				err_display("send() - progress");
+				break;
+			}
+
 			// 모든 청크를 받았는지 확인
 			if (chunkNumber == totalChunks - 1) {
 				break;
@@ -199,10 +209,6 @@ int main(int argc, char* argv[])
 			err_display("accept()");
 			break;
 		}
-		// 접속한 클라이언트 정보 출력
-		char addr[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
-		// printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d, 현재접속중인 클라이언트 수=%d\n", addr, ntohs(clientaddr.sin_port), global_client_num + 1);
 
 		// 스레드 생성
 		hThread = CreateThread(NULL, 0, ProcessClient, (LPVOID)client_sock, 0, NULL);
