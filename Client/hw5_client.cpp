@@ -153,29 +153,28 @@ DWORD WINAPI ClientMain(LPVOID arg)
 		// 가변 길이 데이터 전송
 		send(sock, buffer.data(), bytesRead, 0);
 
-		//// 진행률 계산 및 ProgressBar 업데이트
-		//totalBytesSent += bytesRead;
-		//int progressPercentage = (int)((totalBytesSent * 100) / file_size);
-		//SendMessage(hProgressBar, PBM_SETPOS, progressPercentage, 0);
+		// 진행률 계산 및 ProgressBar 업데이트
+		totalBytesSent += bytesRead;
+		int progressPercentage = (int)((totalBytesSent * 100) / file_size);
+		SendMessage(hProgressBar, PBM_SETPOS, progressPercentage, 0);
 
-		//chunkNumber++;
+		chunkNumber++;
 
 		//Sleep(10);
 
 		// 서버로부터 진행률 수신
-		int progress;
-		retval = recv(sock, (char*)&progress, sizeof(int), 0);
-		if (retval == SOCKET_ERROR) {
-			err_display("recv() - progressPercentage");
-			break;
-		}
-
+		//int progress;
+		//retval = recv(sock, (char*)&progress, sizeof(int), 0);
+		//if (retval == SOCKET_ERROR) {
+		//	err_display("recv() - progressPercentage");
+		//	break;
+		//}
 		// ProgressBar 업데이트
-		SendMessage(hProgressBar, PBM_SETPOS, progress, 0);
+		//SendMessage(hProgressBar, PBM_SETPOS, totalBytesSent, 0);
 	}
 
 	// 전송 완료 후 ProgressBar를 100%로 설정
-	// SendMessage(hProgressBar, PBM_SETPOS, 100, 0);
+	SendMessage(hProgressBar, PBM_SETPOS, 100, 0);
 
 	return 0;
 }

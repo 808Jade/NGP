@@ -138,15 +138,15 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			// 진행률 표시
 			displayProgress(addr ,totalReceived, file_size, client_num);
 
-			// 진행률 계산
-			int progress = (int)((totalReceived * 100) / file_size);
+			//// 진행률 계산
+			//int progress = (int)((totalReceived * 100) / file_size);
 
-			// 클라이언트에게 진행률 전송
-			retval = send(client_sock, (char*)&progress, sizeof(int), 0);
-			if (retval == SOCKET_ERROR) {
-				err_display("send() - progress");
-				break;
-			}
+			//// 클라이언트에게 진행률 전송
+			//retval = send(client_sock, (char*)&progress, sizeof(int), 0);
+			//if (retval == SOCKET_ERROR) {
+			//	err_display("send() - progress");
+			//	break;
+			//}
 
 			// 모든 청크를 받았는지 확인
 			if (chunkNumber == totalChunks - 1) {
